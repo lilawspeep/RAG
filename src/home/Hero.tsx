@@ -6,8 +6,8 @@ import logo from '../assets/alquds-logo.png';
 import { DOME_GEOMETRY as G, DomeNames, DomeStructure } from './DomeArt';
 
 /** Displayed emblem width as a fraction of the art stage. */
-const LOGO_RATIO = 0.74;
-const START_SCALE = 1.22;
+const LOGO_RATIO = 0.6;
+const START_SCALE = 1;
 // Scale/offset that place the illustrated dome exactly over the emblem's dome.
 const END_SCALE = ((G.logo.domeWidth / G.logo.width) * LOGO_RATIO) / (G.domeWidth / G.viewBox);
 const END_DX = ((G.logo.domeBase.x - G.logo.width / 2) / G.logo.width) * LOGO_RATIO * 100;
@@ -117,8 +117,12 @@ export function Hero() {
       <div className={`${reduced ? 'relative min-h-svh' : 'sticky top-0 h-svh'} overflow-hidden`}>
         <HeroBackdrop />
 
-        <div className="relative flex h-full flex-col items-center justify-center px-4 pt-20 pb-8 text-center">
-          <div ref={introRef} className="flex items-center gap-3" style={{ opacity: reduced ? 1 : initial.introOpacity }}>
+        <div className="relative mx-auto grid h-full max-w-7xl content-center justify-items-center px-4 pt-16 pb-6 text-center [--stage:min(66svh,94vw,780px)] [grid-template-areas:'eyebrow'_'art'_'text'] lg:grid-cols-[minmax(0,1fr)_auto] lg:content-center lg:items-center lg:gap-x-10 lg:px-8 lg:text-start lg:[--stage:min(84svh,50vw,820px)] lg:[grid-template-areas:'eyebrow_art'_'text_art'] lg:[grid-template-rows:auto_auto]">
+          <div
+            ref={introRef}
+            className="flex items-center gap-3 [grid-area:eyebrow] lg:self-end lg:justify-self-start"
+            style={{ opacity: reduced ? 1 : initial.introOpacity }}
+          >
             <span className="h-px w-8 bg-gold/60" aria-hidden />
             <p className="text-sm font-bold tracking-wide text-gold-light sm:text-base">{t.hero.eyebrow}</p>
             <span className="h-px w-8 bg-gold/60" aria-hidden />
@@ -127,7 +131,7 @@ export function Hero() {
           <div
             role="img"
             aria-label={t.hero.artLabel}
-            className="relative my-2 aspect-square w-[min(50svh,88vw,600px)] shrink-0 sm:my-3"
+            className="relative mt-[calc(var(--stage)*-0.14)] mb-[calc(var(--stage)*-0.15)] aspect-square w-(--stage) shrink-0 [grid-area:art] lg:-my-[calc(var(--stage)*0.06)]"
           >
             <div
               ref={artRef}
@@ -153,23 +157,22 @@ export function Hero() {
             )}
           </div>
 
-          {reduced && (
-            <div className="mb-3 grid size-20 place-items-center">
-              <div className="relative size-20">
-                <LogoPlate />
+          <div className="relative max-w-3xl [grid-area:text] lg:self-start lg:pt-4">
+            {reduced && (
+              <div className="mx-auto mb-3 grid size-20 place-items-center lg:mx-0">
+                <div className="relative size-20">
+                  <LogoPlate />
+                </div>
               </div>
-            </div>
-          )}
-
-          <div className="max-w-3xl">
-            <h1 id="hero-title" className="text-2xl leading-snug font-extrabold text-balance text-white sm:text-4xl lg:text-[2.75rem]">
+            )}
+            <h1 id="hero-title" className="text-2xl leading-snug font-extrabold text-balance text-white sm:text-4xl lg:text-[2.75rem] lg:leading-tight xl:text-5xl">
               {t.hero.title}
             </h1>
-            <p className="mt-1.5 text-xs font-medium text-gold-light/80 sm:text-sm" lang={dir === 'rtl' ? 'en' : 'ar'} dir={dir === 'rtl' ? 'ltr' : 'rtl'}>
+            <p className="mt-1.5 text-xs font-medium text-gold-light/80 sm:text-sm lg:mt-3 lg:text-end lg:text-base" lang={dir === 'rtl' ? 'en' : 'ar'} dir={dir === 'rtl' ? 'ltr' : 'rtl'}>
               {t.hero.secondaryTitle}
             </p>
-            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/75 sm:text-lg">{t.hero.subtitle}</p>
-            <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+            <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-white/75 sm:text-lg lg:mx-0 lg:mt-5">{t.hero.subtitle}</p>
+            <div className="mt-5 flex flex-wrap items-center justify-center gap-3 lg:mt-8 lg:justify-start">
               <Link to="/register" className="btn-gold px-6 py-3 text-base">
                 {t.hero.ctaStart}
                 <Arrow className="size-4" aria-hidden />
