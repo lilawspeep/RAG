@@ -1,0 +1,16 @@
+node_modules
+dist
+*.local
+.env
+.env.*
+!.env.example
+supabase/.temp
+supabase/.branches
+supabase/functions/.env
+.DS_Store
+coverage
+backend/.env
+backend/*.db
+__pycache__/
+*.pyc
+.venv/

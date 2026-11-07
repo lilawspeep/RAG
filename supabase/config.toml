@@ -1,0 +1,41 @@
+project_id = "alquds-ai-advisor"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 5000
+
+[db]
+port = 54322
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173/login", "http://localhost:5173/reset-password"]
+enable_signup = true
+minimum_password_length = 8
+
+[auth.email]
+enable_signup = true
+enable_confirmations = true
+
+[storage]
+enabled = true
+file_size_limit = "20MiB"
+
+# Returns only configuration booleans and counts to anonymous callers; authorizes admins itself.
+[functions.rag-status]
+verify_jwt = false
+
+[functions.advisor-chat]
+verify_jwt = true
+
+[functions.ingest-document]
+verify_jwt = true
