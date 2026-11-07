@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Send } from 'lucide-react';
 import { useI18n } from '../i18n/I18nProvider';
 import { useAuth } from '../auth/AuthProvider';
+import { api, isApiConfigured } from '../lib/backend';
 import { getSupabase } from '../lib/supabase';
 import { hasErrors, validateContact, type Errors } from '../lib/validation';
 import { Field, Notice, Spinner, errorProps } from './ui';
@@ -32,6 +33,16 @@ export function ContactForm() {
     setErrors(errs);
     if (hasErrors(errs)) return;
     setStatus({ kind: 'sending' });
+    if (isApiConfigured) {
+      try {
+        await api('/contact', { body: { name: values.name.trim(), email: values.email.trim(), subject: values.subject.trim(), message: values.message.trim() } });
+        setStatus({ kind: 'success' });
+        setValues((v) => ({ ...v, subject: '', message: '' }));
+      } catch {
+        setStatus({ kind: 'failed' });
+      }
+      return;
+    }
     const sb = await getSupabase();
     if (!sb) {
       setStatus({ kind: 'unavailable' });

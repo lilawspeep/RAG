@@ -56,8 +56,10 @@ export function validateRegister(values: RegisterValues, v: V) {
 
 export function validateLogin(values: { email: string; password: string }, v: V) {
   const e: Errors<'email' | 'password'> = {};
-  if (!values.email.trim()) e.email = v.required;
-  else if (!EMAIL_RE.test(values.email.trim())) e.email = v.email;
+  const id = values.email.trim();
+  if (!id) e.email = v.required;
+  else if (id.includes('@') && !EMAIL_RE.test(id)) e.email = v.email;
+  else if (id.length < 3) e.email = v.minLength(3);
   if (!values.password) e.password = v.required;
   return e;
 }

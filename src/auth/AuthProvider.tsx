@@ -1,7 +1,26 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
+import { api, getToken, isApiConfigured, setToken, type ApiUser } from '../lib/backend';
 import { getSupabase, isSupabaseConfigured, requireSupabase } from '../lib/supabase';
 import type { AppRole, Profile } from '../lib/types';
+
+/** FastAPI auth is used when its URL is set and Supabase is not. */
+const apiMode = isApiConfigured && !isSupabaseConfigured;
+
+function profileFromApi(u: ApiUser): Profile {
+  return {
+    id: u.id,
+    full_name: u.full_name,
+    email: u.email,
+    university_id: u.university_id,
+    faculty_id: null,
+    major_id: null,
+    faculty_text: u.faculty,
+    major_text: u.major,
+    preferred_language: 'ar',
+    created_at: u.created_at,
+  };
+}
 
 export interface SignUpInput {
   fullName: string;
@@ -31,6 +50,7 @@ interface AuthValue {
   requestPasswordReset: (email: string) => Promise<void>;
   updatePassword: (password: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (input: { full_name: string; university_id: string | null }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -48,14 +68,31 @@ async function loadUserData(userId: string): Promise<{ profile: Profile | null; 
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [loading, setLoading] = useState(isSupabaseConfigured);
+  const [loading, setLoading] = useState(isSupabaseConfigured || apiMode);
   const [session, setSession] = useState<Session | null>(null);
+  const [account, setAccount] = useState<ApiUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<AppRole[]>([]);
   const [recoveryMode, setRecoveryMode] = useState(false);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!apiMode) return;
+    if (!getToken()) {
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    api<ApiUser>('/auth/me')
+      .then((u) => active && setAccount(u))
+      .catch(() => setToken(null))
+      .finally(() => active && setLoading(false));
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (apiMode || !isSupabaseConfigured) return;
     let active = true;
     let unsubscribe: (() => void) | undefined;
 
@@ -99,6 +136,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    if (apiMode) {
+      const res = await api<{ access_token: string; user: ApiUser }>('/auth/login', {
+        body: { identifier: email.trim(), password },
+        auth: false,
+      });
+      setToken(res.access_token);
+      setAccount(res.user);
+      return { roles: [res.user.role] as AppRole[] };
+    }
     const sb = await requireSupabase();
     const { data, error } = await sb.auth.signInWithPassword({ email: email.trim(), password });
     if (error) throw error;
@@ -110,6 +156,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (input: SignUpInput) => {
+    if (apiMode) {
+      const res = await api<{ access_token: string; user: ApiUser }>('/auth/register', {
+        body: {
+          full_name: input.fullName.trim(),
+          email: input.email.trim(),
+          password: input.password,
+          university_id: input.universityId?.trim() || null,
+          faculty: input.facultyText?.trim() || null,
+          major: input.majorText?.trim() || null,
+        },
+        auth: false,
+      });
+      setToken(res.access_token);
+      setAccount(res.user);
+      return { needsConfirmation: false };
+    }
     const sb = await requireSupabase();
     // Metadata is read by the handle_new_user trigger; it never carries a role.
     const { data, error } = await sb.auth.signUp({
@@ -137,6 +199,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    if (apiMode) {
+      setToken(null);
+      setAccount(null);
+      return;
+    }
     const sb = await getSupabase();
     await sb?.auth.signOut();
     setSession(null);
@@ -160,21 +227,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshProfile = useCallback(async () => {
+    if (apiMode) {
+      if (!getToken()) return;
+      setAccount(await api<ApiUser>('/auth/me'));
+      return;
+    }
     if (!session) return;
     const d = await loadUserData(session.user.id);
     setProfile(d.profile);
     setRoles(d.roles);
   }, [session]);
 
+  const updateProfile = useCallback(async (input: { full_name: string; university_id: string | null }) => {
+    if (apiMode) {
+      setAccount(await api<ApiUser>('/auth/me', { method: 'PATCH', body: input }));
+      return;
+    }
+    const sb = await requireSupabase();
+    const { error } = await sb.from('profiles').update(input).eq('id', session?.user.id ?? '');
+    if (error) throw error;
+    await refreshProfile();
+  }, [session, refreshProfile]);
+
   const value = useMemo<AuthValue>(
     () => ({
-      configured: isSupabaseConfigured,
+      configured: isSupabaseConfigured || apiMode,
       loading,
       session,
-      user: session?.user ?? null,
-      profile,
-      roles,
-      isAdmin: roles.includes('admin'),
+      user: session?.user ?? (account ? ({ id: account.id, email: account.email } as User) : null),
+      profile: account ? profileFromApi(account) : profile,
+      roles: account ? [account.role] : roles,
+      isAdmin: (account ? [account.role] : roles).includes('admin'),
       recoveryMode,
       signIn,
       signUp,
@@ -182,8 +265,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       requestPasswordReset,
       updatePassword,
       refreshProfile,
+      updateProfile,
     }),
-    [loading, session, profile, roles, recoveryMode, signIn, signUp, signOut, requestPasswordReset, updatePassword, refreshProfile],
+    [loading, session, account, profile, roles, recoveryMode, signIn, signUp, signOut, requestPasswordReset, updatePassword, refreshProfile, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

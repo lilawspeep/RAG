@@ -169,6 +169,8 @@ export const en: Dict = {
     adminNote:
       'Choosing the Admin tab grants no privileges. Administrator roles are verified on the server after sign-in.',
     email: 'Email',
+    identifierStudent: 'University ID or username',
+    identifierAdmin: 'Username or email',
     password: 'Password',
     confirmPassword: 'Confirm password',
     forgot: 'Forgot password?',

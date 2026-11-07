@@ -193,7 +193,6 @@ export default function UserDashboard() {
             setEditing(false);
           }}
           initial={{ full_name: profile.full_name, university_id: profile.university_id ?? '' }}
-          userId={profile.id}
         />
       )}
     </div>
@@ -202,16 +201,15 @@ export default function UserDashboard() {
 
 function EditProfile({
   initial,
-  userId,
   onClose,
   onSaved,
 }: {
   initial: { full_name: string; university_id: string };
-  userId: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const { t } = useI18n();
+  const { updateProfile } = useAuth();
   const [v, setV] = useState(initial);
   const [err, setErr] = useState<{ full_name?: string; university_id?: string }>({});
   const [formError, setFormError] = useState<string | null>(null);
@@ -226,14 +224,14 @@ function EditProfile({
     setErr(errs);
     if (errs.full_name || errs.university_id) return;
     setBusy(true);
-    const sb = await getSupabase();
-    const { error } = (await sb
-      ?.from('profiles')
-      .update({ full_name: v.full_name.trim(), university_id: v.university_id.trim() || null })
-      .eq('id', userId)) ?? { error: new Error('no backend') };
-    setBusy(false);
-    if (error) setFormError(t.common.errorGeneric);
-    else onSaved();
+    try {
+      await updateProfile({ full_name: v.full_name.trim(), university_id: v.university_id.trim() || null });
+      setBusy(false);
+      onSaved();
+    } catch {
+      setBusy(false);
+      setFormError(t.common.errorGeneric);
+    }
   };
 
   return (

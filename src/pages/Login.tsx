@@ -94,8 +94,8 @@ export default function Login() {
       )}
 
       <form noValidate onSubmit={onSubmit} className="space-y-4">
-        <Field label={t.auth.email} htmlFor="l-email" error={errors.email}>
-          <input {...errorProps('l-email', errors.email)} type="email" dir="ltr" autoComplete="email" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
+        <Field label={tab === 'admin' ? t.auth.identifierAdmin : t.auth.identifierStudent} htmlFor="l-email" error={errors.email}>
+          <input {...errorProps('l-email', errors.email)} type="text" dir="ltr" autoComplete="username" className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
         <Field label={t.auth.password} htmlFor="l-password" error={errors.password}>
           <input {...errorProps('l-password', errors.password)} type="password" autoComplete="current-password" className="input" value={password} onChange={(e) => setPassword(e.target.value)} />
