@@ -182,7 +182,7 @@ export function Hero() {
         </div>
 
         {!reduced && (
-          <div ref={cueRef} className="pointer-events-none absolute inset-x-0 bottom-3 hidden flex-col items-center text-white/50 sm:flex" aria-hidden>
+          <div ref={cueRef} className="pointer-events-none absolute inset-x-0 bottom-3 hidden flex-col items-center text-white/50 [@media(min-height:960px)]:sm:flex" aria-hidden>
             <span className="text-xs">{t.hero.scrollHint}</span>
             <ChevronDown className="size-4 animate-bounce" />
           </div>
